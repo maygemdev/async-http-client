@@ -12,6 +12,8 @@
  */
 package org.asynchttpclient.extras.typesafeconfig;
 
+import static org.asynchttpclient.config.AsyncHttpClientConfigDefaults.*;
+
 import com.typesafe.config.Config;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.channel.Channel;
@@ -19,6 +21,14 @@ import io.netty.channel.ChannelOption;
 import io.netty.channel.EventLoopGroup;
 import io.netty.handler.ssl.SslContext;
 import io.netty.util.Timer;
+import java.util.Collections;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.ThreadFactory;
+import java.util.function.Consumer;
+import java.util.function.Function;
 import org.asynchttpclient.AsyncHttpClientConfig;
 import org.asynchttpclient.Realm;
 import org.asynchttpclient.SslEngineFactory;
@@ -31,15 +41,9 @@ import org.asynchttpclient.cookie.ThreadSafeCookieStore;
 import org.asynchttpclient.filter.IOExceptionFilter;
 import org.asynchttpclient.filter.RequestFilter;
 import org.asynchttpclient.filter.ResponseFilter;
+import org.asynchttpclient.netty.BootstrapFactory;
 import org.asynchttpclient.netty.channel.ConnectionSemaphoreFactory;
 import org.asynchttpclient.proxy.ProxyServerSelector;
-
-import java.util.*;
-import java.util.concurrent.ThreadFactory;
-import java.util.function.Consumer;
-import java.util.function.Function;
-
-import static org.asynchttpclient.config.AsyncHttpClientConfigDefaults.*;
 
 public class AsyncHttpClientTypesafeConfig implements AsyncHttpClientConfig {
 
@@ -434,5 +438,10 @@ public class AsyncHttpClientTypesafeConfig implements AsyncHttpClientConfig {
     return config.hasPath(key)
             ? Optional.ofNullable(func.apply(key))
             : Optional.empty();
+  }
+
+  @Override
+  public BootstrapFactory getBootstrapFactory() {
+      return null;
   }
 }

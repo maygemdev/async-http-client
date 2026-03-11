@@ -15,12 +15,75 @@
  */
 package org.asynchttpclient;
 
+import static org.asynchttpclient.config.AsyncHttpClientConfigDefaults.defaultAcquireFreeChannelTimeout;
+import static org.asynchttpclient.config.AsyncHttpClientConfigDefaults.defaultAggregateWebSocketFrameFragments;
+import static org.asynchttpclient.config.AsyncHttpClientConfigDefaults.defaultChunkedFileChunkSize;
+import static org.asynchttpclient.config.AsyncHttpClientConfigDefaults.defaultCompressionEnforced;
+import static org.asynchttpclient.config.AsyncHttpClientConfigDefaults.defaultConnectTimeout;
+import static org.asynchttpclient.config.AsyncHttpClientConfigDefaults.defaultConnectionPoolCleanerPeriod;
+import static org.asynchttpclient.config.AsyncHttpClientConfigDefaults.defaultConnectionTtl;
+import static org.asynchttpclient.config.AsyncHttpClientConfigDefaults.defaultDisableHttpsEndpointIdentificationAlgorithm;
+import static org.asynchttpclient.config.AsyncHttpClientConfigDefaults.defaultDisableUrlEncodingForBoundRequests;
+import static org.asynchttpclient.config.AsyncHttpClientConfigDefaults.defaultDisableZeroCopy;
+import static org.asynchttpclient.config.AsyncHttpClientConfigDefaults.defaultEnableWebSocketCompression;
+import static org.asynchttpclient.config.AsyncHttpClientConfigDefaults.defaultEnabledCipherSuites;
+import static org.asynchttpclient.config.AsyncHttpClientConfigDefaults.defaultEnabledProtocols;
+import static org.asynchttpclient.config.AsyncHttpClientConfigDefaults.defaultExpiredCookieEvictionDelay;
+import static org.asynchttpclient.config.AsyncHttpClientConfigDefaults.defaultFilterInsecureCipherSuites;
+import static org.asynchttpclient.config.AsyncHttpClientConfigDefaults.defaultFollowRedirect;
+import static org.asynchttpclient.config.AsyncHttpClientConfigDefaults.defaultHandshakeTimeout;
+import static org.asynchttpclient.config.AsyncHttpClientConfigDefaults.defaultHashedWheelTimerSize;
+import static org.asynchttpclient.config.AsyncHttpClientConfigDefaults.defaultHashedWheelTimerTickDuration;
+import static org.asynchttpclient.config.AsyncHttpClientConfigDefaults.defaultHttpClientCodecInitialBufferSize;
+import static org.asynchttpclient.config.AsyncHttpClientConfigDefaults.defaultHttpClientCodecMaxChunkSize;
+import static org.asynchttpclient.config.AsyncHttpClientConfigDefaults.defaultHttpClientCodecMaxHeaderSize;
+import static org.asynchttpclient.config.AsyncHttpClientConfigDefaults.defaultHttpClientCodecMaxInitialLineLength;
+import static org.asynchttpclient.config.AsyncHttpClientConfigDefaults.defaultIoThreadsCount;
+import static org.asynchttpclient.config.AsyncHttpClientConfigDefaults.defaultKeepAlive;
+import static org.asynchttpclient.config.AsyncHttpClientConfigDefaults.defaultKeepEncodingHeader;
+import static org.asynchttpclient.config.AsyncHttpClientConfigDefaults.defaultMaxConnections;
+import static org.asynchttpclient.config.AsyncHttpClientConfigDefaults.defaultMaxConnectionsPerHost;
+import static org.asynchttpclient.config.AsyncHttpClientConfigDefaults.defaultMaxRedirects;
+import static org.asynchttpclient.config.AsyncHttpClientConfigDefaults.defaultMaxRequestRetry;
+import static org.asynchttpclient.config.AsyncHttpClientConfigDefaults.defaultPooledConnectionIdleTimeout;
+import static org.asynchttpclient.config.AsyncHttpClientConfigDefaults.defaultReadTimeout;
+import static org.asynchttpclient.config.AsyncHttpClientConfigDefaults.defaultRequestTimeout;
+import static org.asynchttpclient.config.AsyncHttpClientConfigDefaults.defaultShutdownQuietPeriod;
+import static org.asynchttpclient.config.AsyncHttpClientConfigDefaults.defaultShutdownTimeout;
+import static org.asynchttpclient.config.AsyncHttpClientConfigDefaults.defaultSoKeepAlive;
+import static org.asynchttpclient.config.AsyncHttpClientConfigDefaults.defaultSoLinger;
+import static org.asynchttpclient.config.AsyncHttpClientConfigDefaults.defaultSoRcvBuf;
+import static org.asynchttpclient.config.AsyncHttpClientConfigDefaults.defaultSoReuseAddress;
+import static org.asynchttpclient.config.AsyncHttpClientConfigDefaults.defaultSoSndBuf;
+import static org.asynchttpclient.config.AsyncHttpClientConfigDefaults.defaultSslSessionCacheSize;
+import static org.asynchttpclient.config.AsyncHttpClientConfigDefaults.defaultSslSessionTimeout;
+import static org.asynchttpclient.config.AsyncHttpClientConfigDefaults.defaultStrict302Handling;
+import static org.asynchttpclient.config.AsyncHttpClientConfigDefaults.defaultTcpNoDelay;
+import static org.asynchttpclient.config.AsyncHttpClientConfigDefaults.defaultThreadPoolName;
+import static org.asynchttpclient.config.AsyncHttpClientConfigDefaults.defaultUseInsecureTrustManager;
+import static org.asynchttpclient.config.AsyncHttpClientConfigDefaults.defaultUseLaxCookieEncoder;
+import static org.asynchttpclient.config.AsyncHttpClientConfigDefaults.defaultUseNativeTransport;
+import static org.asynchttpclient.config.AsyncHttpClientConfigDefaults.defaultUseOpenSsl;
+import static org.asynchttpclient.config.AsyncHttpClientConfigDefaults.defaultUseProxyProperties;
+import static org.asynchttpclient.config.AsyncHttpClientConfigDefaults.defaultUseProxySelector;
+import static org.asynchttpclient.config.AsyncHttpClientConfigDefaults.defaultUserAgent;
+import static org.asynchttpclient.config.AsyncHttpClientConfigDefaults.defaultValidateResponseHeaders;
+import static org.asynchttpclient.config.AsyncHttpClientConfigDefaults.defaultWebSocketMaxBufferSize;
+import static org.asynchttpclient.config.AsyncHttpClientConfigDefaults.defaultWebSocketMaxFrameSize;
+
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelOption;
 import io.netty.channel.EventLoopGroup;
 import io.netty.handler.ssl.SslContext;
 import io.netty.util.Timer;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ThreadFactory;
+import java.util.function.Consumer;
 import org.asynchttpclient.channel.ChannelPool;
 import org.asynchttpclient.channel.DefaultKeepAliveStrategy;
 import org.asynchttpclient.channel.KeepAliveStrategy;
@@ -30,16 +93,11 @@ import org.asynchttpclient.cookie.ThreadSafeCookieStore;
 import org.asynchttpclient.filter.IOExceptionFilter;
 import org.asynchttpclient.filter.RequestFilter;
 import org.asynchttpclient.filter.ResponseFilter;
+import org.asynchttpclient.netty.BootstrapFactory;
 import org.asynchttpclient.netty.channel.ConnectionSemaphoreFactory;
 import org.asynchttpclient.proxy.ProxyServer;
 import org.asynchttpclient.proxy.ProxyServerSelector;
 import org.asynchttpclient.util.ProxyUtils;
-
-import java.util.*;
-import java.util.concurrent.ThreadFactory;
-import java.util.function.Consumer;
-
-import static org.asynchttpclient.config.AsyncHttpClientConfigDefaults.*;
 
 /**
  * Configuration class to use with a {@link AsyncHttpClient}. System property can be also used to configure this object default behavior by doing: <br>
@@ -137,6 +195,8 @@ public class DefaultAsyncHttpClientConfig implements AsyncHttpClientConfig {
   private final long hashedWheelTimerTickDuration;
   private final int hashedWheelTimerSize;
 
+  private final BootstrapFactory bootstrapFactory;
+
   private DefaultAsyncHttpClientConfig(// http
                                        boolean followRedirect,
                                        int maxRedirects,
@@ -223,7 +283,8 @@ public class DefaultAsyncHttpClientConfig implements AsyncHttpClientConfig {
                                        ResponseBodyPartFactory responseBodyPartFactory,
                                        int ioThreadsCount,
                                        long hashedWheelTimerTickDuration,
-                                       int hashedWheelTimerSize) {
+          int hashedWheelTimerSize,
+          BootstrapFactory bootstrapFactory) {
 
     // http
     this.followRedirect = followRedirect;
@@ -314,6 +375,8 @@ public class DefaultAsyncHttpClientConfig implements AsyncHttpClientConfig {
     this.ioThreadsCount = ioThreadsCount;
     this.hashedWheelTimerTickDuration = hashedWheelTimerTickDuration;
     this.hashedWheelTimerSize = hashedWheelTimerSize;
+
+    this.bootstrapFactory = bootstrapFactory;
   }
 
   @Override
@@ -688,6 +751,11 @@ public class DefaultAsyncHttpClientConfig implements AsyncHttpClientConfig {
     return ioThreadsCount;
   }
 
+  @Override
+  public BootstrapFactory getBootstrapFactory() {
+      return bootstrapFactory;
+  }
+
   /**
    * Builder for an {@link AsyncHttpClient}
    */
@@ -783,6 +851,8 @@ public class DefaultAsyncHttpClientConfig implements AsyncHttpClientConfig {
     private int ioThreadsCount = defaultIoThreadsCount();
     private long hashedWheelTickDuration = defaultHashedWheelTimerTickDuration();
     private int hashedWheelSize = defaultHashedWheelTimerSize();
+
+    private BootstrapFactory bootstrapFactory;
 
     public Builder() {
     }
@@ -901,7 +971,7 @@ public class DefaultAsyncHttpClientConfig implements AsyncHttpClientConfig {
     }
 
     public Builder setRealm(Realm.Builder realmBuilder) {
-      this.realm = realmBuilder.build();
+      realm = realmBuilder.build();
       return this;
     }
 
@@ -941,7 +1011,7 @@ public class DefaultAsyncHttpClientConfig implements AsyncHttpClientConfig {
     }
 
     public Builder setProxyServer(ProxyServer proxyServer) {
-      this.proxyServerSelector = uri -> proxyServer;
+      proxyServerSelector = uri -> proxyServer;
       return this;
     }
 
@@ -1283,15 +1353,23 @@ public class DefaultAsyncHttpClientConfig implements AsyncHttpClientConfig {
       return this;
     }
 
+    public Builder setBootstrapFactory(BootstrapFactory bootstrapFactory) {
+        this.bootstrapFactory = bootstrapFactory;
+        return this;
+    }
+
     private ProxyServerSelector resolveProxyServerSelector() {
-      if (proxyServerSelector != null)
+      if (proxyServerSelector != null) {
         return proxyServerSelector;
+      }
 
-      if (useProxySelector)
+      if (useProxySelector) {
         return ProxyUtils.getJdkDefaultProxyServerSelector();
+      }
 
-      if (useProxyProperties)
+      if (useProxyProperties) {
         return ProxyUtils.createProxyServerSelector(System.getProperties());
+      }
 
       return ProxyServerSelector.NO_PROXY_SELECTOR;
     }
@@ -1370,7 +1448,9 @@ public class DefaultAsyncHttpClientConfig implements AsyncHttpClientConfig {
               responseBodyPartFactory,
               ioThreadsCount,
               hashedWheelTickDuration,
-              hashedWheelSize);
+              hashedWheelSize,
+              bootstrapFactory);
     }
   }
+
 }

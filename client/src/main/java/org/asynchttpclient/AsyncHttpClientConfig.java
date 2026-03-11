@@ -20,22 +20,22 @@ import io.netty.channel.ChannelOption;
 import io.netty.channel.EventLoopGroup;
 import io.netty.handler.ssl.SslContext;
 import io.netty.util.Timer;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ThreadFactory;
+import java.util.function.Consumer;
 import org.asynchttpclient.channel.ChannelPool;
 import org.asynchttpclient.channel.KeepAliveStrategy;
 import org.asynchttpclient.cookie.CookieStore;
 import org.asynchttpclient.filter.IOExceptionFilter;
 import org.asynchttpclient.filter.RequestFilter;
 import org.asynchttpclient.filter.ResponseFilter;
+import org.asynchttpclient.netty.BootstrapFactory;
 import org.asynchttpclient.netty.EagerResponseBodyPart;
 import org.asynchttpclient.netty.LazyResponseBodyPart;
 import org.asynchttpclient.netty.channel.ConnectionSemaphoreFactory;
 import org.asynchttpclient.proxy.ProxyServer;
 import org.asynchttpclient.proxy.ProxyServerSelector;
-
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ThreadFactory;
-import java.util.function.Consumer;
 
 public interface AsyncHttpClientConfig {
 
@@ -346,6 +346,8 @@ public interface AsyncHttpClientConfig {
   ByteBufAllocator getAllocator();
 
   int getIoThreadsCount();
+
+  BootstrapFactory getBootstrapFactory();
 
   enum ResponseBodyPartFactory {
 
