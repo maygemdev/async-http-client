@@ -760,6 +760,11 @@ public class DefaultAsyncHttpClientConfig implements AsyncHttpClientConfig {
       return bootstrapFactory;
   }
 
+  @Override
+  public PoolLeaseStrategy getPoolLeaseStrategy() {
+      return poolLeaseStrategy;
+  }
+
   /**
    * Builder for an {@link AsyncHttpClient}
    */
