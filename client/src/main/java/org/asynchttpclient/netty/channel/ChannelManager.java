@@ -508,6 +508,10 @@ public class ChannelManager {
         return eventLoopGroup;
     }
 
+    public Bootstrap getHttpBootstrap() {
+        return httpBootstrap;
+    }
+
     public ClientStats getClientStats() {
         Map<String, Long> totalConnectionsPerHost = openChannels.stream().map(Channel::remoteAddress).filter(a -> a instanceof InetSocketAddress)
                 .map(a -> (InetSocketAddress) a).map(i -> i.getHostString() + ":" + i.getPort()).collect(Collectors.groupingBy(Function.identity(), Collectors.counting()));

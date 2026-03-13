@@ -16,11 +16,18 @@
  */
 package org.asynchttpclient;
 
+import static org.asynchttpclient.util.Assertions.assertNotNull;
+
 import io.netty.channel.EventLoopGroup;
 import io.netty.handler.codec.http.cookie.Cookie;
 import io.netty.util.HashedWheelTimer;
 import io.netty.util.Timer;
 import io.netty.util.concurrent.DefaultThreadFactory;
+import java.util.List;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Predicate;
 import org.asynchttpclient.channel.ChannelPool;
 import org.asynchttpclient.cookie.CookieEvictionTask;
 import org.asynchttpclient.cookie.CookieStore;
@@ -32,14 +39,6 @@ import org.asynchttpclient.netty.channel.ChannelManager;
 import org.asynchttpclient.netty.request.NettyRequestSender;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.List;
-import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.Predicate;
-
-import static org.asynchttpclient.util.Assertions.assertNotNull;
 
 /**
  * Default and threadsafe implementation of {@link AsyncHttpClient}.
@@ -85,7 +84,7 @@ public class DefaultAsyncHttpClient implements AsyncHttpClient {
   public DefaultAsyncHttpClient(AsyncHttpClientConfig config) {
 
     this.config = config;
-    this.noRequestFilters = config.getRequestFilters().isEmpty();
+    noRequestFilters = config.getRequestFilters().isEmpty();
     allowStopNettyTimer = config.getNettyTimer() == null;
     nettyTimer = allowStopNettyTimer ? newNettyTimer(config) : config.getNettyTimer();
 
@@ -303,6 +302,10 @@ public class DefaultAsyncHttpClient implements AsyncHttpClient {
     return channelManager.getClientStats();
   }
 
+  public ChannelManager getChannelManager() {
+      return channelManager;
+  }
+
   @Override
   public void flushChannelPoolPartitions(Predicate<Object> predicate) {
     getChannelPool().flushPartitions(predicate);
@@ -318,6 +321,6 @@ public class DefaultAsyncHttpClient implements AsyncHttpClient {
 
   @Override
   public AsyncHttpClientConfig getConfig() {
-    return this.config;
+    return config;
   }
 }
