@@ -13,18 +13,22 @@
  */
 package org.asynchttpclient.netty.channel;
 
+import static org.asynchttpclient.util.Assertions.assertNotNull;
+import static org.asynchttpclient.util.DateUtils.unpreciseMillisTime;
+
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelId;
-import io.netty.util.*;
+import io.netty.util.Attribute;
+import io.netty.util.AttributeKey;
+import io.netty.util.Timeout;
 import io.netty.util.Timer;
 import io.netty.util.TimerTask;
-import org.asynchttpclient.AsyncHttpClientConfig;
-import org.asynchttpclient.channel.ChannelPool;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.net.InetSocketAddress;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Deque;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.TimeUnit;
@@ -33,9 +37,10 @@ import java.util.concurrent.atomic.AtomicIntegerFieldUpdater;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
-
-import static org.asynchttpclient.util.Assertions.assertNotNull;
-import static org.asynchttpclient.util.DateUtils.unpreciseMillisTime;
+import org.asynchttpclient.AsyncHttpClientConfig;
+import org.asynchttpclient.channel.ChannelPool;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * A simple implementation of {@link ChannelPool} based on a {@link java.util.concurrent.ConcurrentHashMap}
@@ -58,6 +63,7 @@ public final class DefaultChannelPool implements ChannelPool {
   public DefaultChannelPool(AsyncHttpClientConfig config, Timer hashedWheelTimer) {
     this(config.getPooledConnectionIdleTimeout(),
             config.getConnectionTtl(),
+            config.getPoolLeaseStrategy(),
             hashedWheelTimer,
             config.getConnectionPoolCleanerPeriod());
   }
@@ -87,8 +93,9 @@ public final class DefaultChannelPool implements ChannelPool {
 
     this.cleanerPeriod = Math.min(cleanerPeriod, Math.min(connectionTtlEnabled ? connectionTtl : Integer.MAX_VALUE, maxIdleTimeEnabled ? maxIdleTime : Integer.MAX_VALUE));
 
-    if (connectionTtlEnabled || maxIdleTimeEnabled)
-      scheduleNewIdleChannelDetector(new IdleChannelDetector());
+    if (connectionTtlEnabled || maxIdleTimeEnabled) {
+        scheduleNewIdleChannelDetector(new IdleChannelDetector());
+    }
   }
 
   private void scheduleNewIdleChannelDetector(TimerTask task) {
@@ -96,8 +103,9 @@ public final class DefaultChannelPool implements ChannelPool {
   }
 
   private boolean isTtlExpired(Channel channel, long now) {
-    if (!connectionTtlEnabled)
-      return false;
+    if (!connectionTtlEnabled) {
+        return false;
+    }
 
     ChannelCreation creation = channel.attr(CHANNEL_CREATION_ATTRIBUTE_KEY).get();
     return creation != null && now - creation.creationTime >= connectionTtl;
@@ -106,14 +114,17 @@ public final class DefaultChannelPool implements ChannelPool {
   /**
    * {@inheritDoc}
    */
-  public boolean offer(Channel channel, Object partitionKey) {
-    if (isClosed.get())
-      return false;
+  @Override
+public boolean offer(Channel channel, Object partitionKey) {
+    if (isClosed.get()) {
+        return false;
+    }
 
     long now = unpreciseMillisTime();
 
-    if (isTtlExpired(channel, now))
-      return false;
+    if (isTtlExpired(channel, now)) {
+        return false;
+    }
 
     boolean offered = offer0(channel, partitionKey, now);
     if (connectionTtlEnabled && offered) {
@@ -142,7 +153,8 @@ public final class DefaultChannelPool implements ChannelPool {
   /**
    * {@inheritDoc}
    */
-  public Channel poll(Object partitionKey) {
+  @Override
+public Channel poll(Object partitionKey) {
 
     IdleChannel idleChannel = null;
     ConcurrentLinkedDeque<IdleChannel> partition = partitions.get(partitionKey);
@@ -150,10 +162,10 @@ public final class DefaultChannelPool implements ChannelPool {
       while (idleChannel == null) {
         idleChannel = poolLeaseStrategy.lease(partition);
 
-        if (idleChannel == null)
-          // pool is empty
-          break;
-        else if (!Channels.isChannelActive(idleChannel.channel)) {
+        if (idleChannel == null) {
+            // pool is empty
+              break;
+        } else if (!Channels.isChannelActive(idleChannel.channel)) {
           idleChannel = null;
           LOGGER.trace("Channel is inactive, probably remotely closed!");
         } else if (!idleChannel.takeOwnership()) {
@@ -168,7 +180,8 @@ public final class DefaultChannelPool implements ChannelPool {
   /**
    * {@inheritDoc}
    */
-  public boolean removeAll(Channel channel) {
+  @Override
+public boolean removeAll(Channel channel) {
     ChannelCreation creation = connectionTtlEnabled ? channel.attr(CHANNEL_CREATION_ATTRIBUTE_KEY).get() : null;
     return !isClosed.get() && creation != null && partitions.get(creation.partitionKey).remove(new IdleChannel(channel, Long.MIN_VALUE));
   }
@@ -176,16 +189,19 @@ public final class DefaultChannelPool implements ChannelPool {
   /**
    * {@inheritDoc}
    */
-  public boolean isOpen() {
+  @Override
+public boolean isOpen() {
     return !isClosed.get();
   }
 
   /**
    * {@inheritDoc}
    */
-  public void destroy() {
-    if (isClosed.getAndSet(true))
-      return;
+  @Override
+public void destroy() {
+    if (isClosed.getAndSet(true)) {
+        return;
+    }
 
     partitions.clear();
   }
@@ -199,8 +215,9 @@ public final class DefaultChannelPool implements ChannelPool {
   private void flushPartition(Object partitionKey, ConcurrentLinkedDeque<IdleChannel> partition) {
     if (partition != null) {
       partitions.remove(partitionKey);
-      for (IdleChannel idleChannel : partition)
+      for (IdleChannel idleChannel : partition) {
         close(idleChannel.channel);
+      }
     }
   }
 
@@ -208,8 +225,9 @@ public final class DefaultChannelPool implements ChannelPool {
   public void flushPartitions(Predicate<Object> predicate) {
     for (Map.Entry<Object, ConcurrentLinkedDeque<IdleChannel>> partitionsEntry : partitions.entrySet()) {
       Object partitionKey = partitionsEntry.getKey();
-      if (predicate.test(partitionKey))
+      if (predicate.test(partitionKey)) {
         flushPartition(partitionKey, partitionsEntry.getValue());
+      }
     }
   }
 
@@ -222,18 +240,20 @@ public final class DefaultChannelPool implements ChannelPool {
             .map(idle -> idle.getChannel().remoteAddress())
             .filter(a -> a.getClass() == InetSocketAddress.class)
             .map(a -> (InetSocketAddress) a)
-            .map(InetSocketAddress::getHostString)
+            .map(i -> i.getHostString() + ":" + i.getPort())
             .collect(Collectors.groupingBy(Function.identity(), Collectors.counting()));
   }
 
   public enum PoolLeaseStrategy {
     LIFO {
-      public <E> E lease(Deque<E> d) {
+      @Override
+    public <E> E lease(Deque<E> d) {
         return d.pollFirst();
       }
     },
     FIFO {
-      public <E> E lease(Deque<E> d) {
+      @Override
+    public <E> E lease(Deque<E> d) {
         return d.pollLast();
       }
     };
@@ -300,8 +320,9 @@ public final class DefaultChannelPool implements ChannelPool {
         boolean isTtlExpired = isTtlExpired(idleChannel.channel, now);
         if (isIdleTimeoutExpired || isRemotelyClosed || isTtlExpired) {
           LOGGER.debug("Adding Candidate expired Channel {} isIdleTimeoutExpired={} isRemotelyClosed={} isTtlExpired={}", idleChannel.channel, isIdleTimeoutExpired, isRemotelyClosed, isTtlExpired);
-          if (idleTimeoutChannels == null)
+          if (idleTimeoutChannels == null) {
             idleTimeoutChannels = new ArrayList<>(1);
+          }
           idleTimeoutChannels.add(idleChannel);
         }
       }
@@ -328,26 +349,30 @@ public final class DefaultChannelPool implements ChannelPool {
           // first non closeable to be skipped, copy all
           // previously skipped closeable channels
           closedChannels = new ArrayList<>(candidates.size());
-          for (int j = 0; j < i; j++)
+          for (int j = 0; j < i; j++) {
             closedChannels.add(candidates.get(j));
+          }
         }
       }
 
       return closedChannels != null ? closedChannels : candidates;
     }
 
+    @Override
     public void run(Timeout timeout) {
 
-      if (isClosed.get())
+      if (isClosed.get()) {
         return;
+      }
 
-      if (LOGGER.isDebugEnabled())
+      if (LOGGER.isDebugEnabled()) {
         for (Object key : partitions.keySet()) {
           int size = partitions.get(key).size();
           if (size > 0) {
             LOGGER.debug("Entry count for : {} : {}", key, size);
           }
         }
+      }
 
       long start = unpreciseMillisTime();
       int closedCount = 0;
@@ -357,8 +382,9 @@ public final class DefaultChannelPool implements ChannelPool {
 
         // store in intermediate unsynchronized lists to minimize
         // the impact on the ConcurrentLinkedDeque
-        if (LOGGER.isDebugEnabled())
-          totalCount += partition.size();
+        if (LOGGER.isDebugEnabled()) {
+            totalCount += partition.size();
+        }
 
         List<IdleChannel> closedChannels = closeChannels(expiredChannels(partition, start));
 

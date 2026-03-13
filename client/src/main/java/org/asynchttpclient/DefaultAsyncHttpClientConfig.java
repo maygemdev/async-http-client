@@ -95,6 +95,7 @@ import org.asynchttpclient.filter.RequestFilter;
 import org.asynchttpclient.filter.ResponseFilter;
 import org.asynchttpclient.netty.BootstrapFactory;
 import org.asynchttpclient.netty.channel.ConnectionSemaphoreFactory;
+import org.asynchttpclient.netty.channel.DefaultChannelPool.PoolLeaseStrategy;
 import org.asynchttpclient.proxy.ProxyServer;
 import org.asynchttpclient.proxy.ProxyServerSelector;
 import org.asynchttpclient.util.ProxyUtils;
@@ -196,6 +197,7 @@ public class DefaultAsyncHttpClientConfig implements AsyncHttpClientConfig {
   private final int hashedWheelTimerSize;
 
   private final BootstrapFactory bootstrapFactory;
+  private final PoolLeaseStrategy poolLeaseStrategy;
 
   private DefaultAsyncHttpClientConfig(// http
                                        boolean followRedirect,
@@ -284,7 +286,8 @@ public class DefaultAsyncHttpClientConfig implements AsyncHttpClientConfig {
                                        int ioThreadsCount,
                                        long hashedWheelTimerTickDuration,
           int hashedWheelTimerSize,
-          BootstrapFactory bootstrapFactory) {
+          BootstrapFactory bootstrapFactory,
+          PoolLeaseStrategy poolLeaseStrategy) {
 
     // http
     this.followRedirect = followRedirect;
@@ -377,6 +380,7 @@ public class DefaultAsyncHttpClientConfig implements AsyncHttpClientConfig {
     this.hashedWheelTimerSize = hashedWheelTimerSize;
 
     this.bootstrapFactory = bootstrapFactory;
+    this.poolLeaseStrategy = poolLeaseStrategy;
   }
 
   @Override
@@ -853,7 +857,7 @@ public class DefaultAsyncHttpClientConfig implements AsyncHttpClientConfig {
     private int hashedWheelSize = defaultHashedWheelTimerSize();
 
     private BootstrapFactory bootstrapFactory;
-
+    private PoolLeaseStrategy poolLeaseStrategy = PoolLeaseStrategy.LIFO;
     public Builder() {
     }
 
@@ -1358,6 +1362,11 @@ public class DefaultAsyncHttpClientConfig implements AsyncHttpClientConfig {
         return this;
     }
 
+    public Builder setPoolLeaseStrategy(PoolLeaseStrategy poolLeaseStrategy) {
+        this.poolLeaseStrategy = poolLeaseStrategy;
+        return this;
+    }
+
     private ProxyServerSelector resolveProxyServerSelector() {
       if (proxyServerSelector != null) {
         return proxyServerSelector;
@@ -1449,7 +1458,8 @@ public class DefaultAsyncHttpClientConfig implements AsyncHttpClientConfig {
               ioThreadsCount,
               hashedWheelTickDuration,
               hashedWheelSize,
-              bootstrapFactory);
+              bootstrapFactory,
+              poolLeaseStrategy);
     }
   }
 

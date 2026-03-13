@@ -34,6 +34,7 @@ import org.asynchttpclient.netty.BootstrapFactory;
 import org.asynchttpclient.netty.EagerResponseBodyPart;
 import org.asynchttpclient.netty.LazyResponseBodyPart;
 import org.asynchttpclient.netty.channel.ConnectionSemaphoreFactory;
+import org.asynchttpclient.netty.channel.DefaultChannelPool.PoolLeaseStrategy;
 import org.asynchttpclient.proxy.ProxyServer;
 import org.asynchttpclient.proxy.ProxyServerSelector;
 
@@ -348,6 +349,8 @@ public interface AsyncHttpClientConfig {
   int getIoThreadsCount();
 
   BootstrapFactory getBootstrapFactory();
+
+  PoolLeaseStrategy getPoolLeaseStrategy();
 
   enum ResponseBodyPartFactory {
 

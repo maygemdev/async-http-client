@@ -43,6 +43,7 @@ import org.asynchttpclient.filter.RequestFilter;
 import org.asynchttpclient.filter.ResponseFilter;
 import org.asynchttpclient.netty.BootstrapFactory;
 import org.asynchttpclient.netty.channel.ConnectionSemaphoreFactory;
+import org.asynchttpclient.netty.channel.DefaultChannelPool.PoolLeaseStrategy;
 import org.asynchttpclient.proxy.ProxyServerSelector;
 
 public class AsyncHttpClientTypesafeConfig implements AsyncHttpClientConfig {
@@ -444,4 +445,10 @@ public class AsyncHttpClientTypesafeConfig implements AsyncHttpClientConfig {
   public BootstrapFactory getBootstrapFactory() {
       return null;
   }
+
+  @Override
+  public PoolLeaseStrategy getPoolLeaseStrategy() {
+      return PoolLeaseStrategy.LIFO;
+  }
+
 }

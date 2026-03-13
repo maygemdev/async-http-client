@@ -510,7 +510,7 @@ public class ChannelManager {
 
     public ClientStats getClientStats() {
         Map<String, Long> totalConnectionsPerHost = openChannels.stream().map(Channel::remoteAddress).filter(a -> a instanceof InetSocketAddress)
-                .map(a -> (InetSocketAddress) a).map(InetSocketAddress::getHostString).collect(Collectors.groupingBy(Function.identity(), Collectors.counting()));
+                .map(a -> (InetSocketAddress) a).map(i -> i.getHostString() + ":" + i.getPort()).collect(Collectors.groupingBy(Function.identity(), Collectors.counting()));
         Map<String, Long> idleConnectionsPerHost = channelPool.getIdleChannelCountPerHost();
         Map<String, HostStats> statsPerHost = totalConnectionsPerHost.entrySet().stream().collect(Collectors.toMap(Entry::getKey, entry -> {
             final long totalConnectionCount = entry.getValue();
